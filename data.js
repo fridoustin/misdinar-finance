@@ -7,27 +7,6 @@ const API_URL = "https://script.google.com/macros/s/AKfycbx5OkclwJGukN3D3ff9AtlA
 const API_CONTENT_TYPE = "text/plain;charset=utf-8";
 
 const DB = (() => {
-  const first = ["Fridolin","Andreas","Maria","Yohanes","Kevin","Agnes","Benedikta","Cornelius","Dominikus","Elisabeth","Felix","Gabriel","Helena","Ignatius","Josephine","Katarina","Laurentius","Margaretha","Nikolaus","Oktavia"];
-  const last = ["", "Wijaya", "Santoso"];
-  const unpaid = [3,4,9,14,19,23,28,33,38,44,50,55];
-  const lv = ["Senior","Senior","Intermediate","Junior"];
-  const lvCycle = ["Junior","Intermediate","Senior"];
-  const members = [], payments = [];
-  let n = 0;
-  for (let i = 0; i < 60; i++) {
-    const id = "M" + String(i + 1).padStart(3, "0");
-    members.push({
-      id, joinWeek: 1,
-      name: i === 0 ? "Fridolin Austin" : (first[i % 20] + " " + last[Math.floor(i / 20)]).trim(),
-      level: i < 4 ? lv[i] : lvCycle[i % 3]
-    });
-    if (!unpaid.includes(i)) {
-      const w = [4,6,8,2,5,4,7,3][n % 8] + (n >= 1 && n <= 6 ? 1 : 0);
-      payments.push({ id: "P" + (n + 1), memberId: id, date: n % 2 ? "2026-09-29" : "2026-09-28", amount: w * 5000 });
-      n++;
-    }
-  }
-
   const activities = [
     { id: "a1", name: "Bazaar 2026", date: "2026-09-28", type: "event" },
     { id: "a2", name: "Iuran Misdinar", date: "2026-09-25", type: "iuran" },
@@ -43,14 +22,14 @@ const DB = (() => {
     T("t4", "expense", 800000, "Bahan", "2026-09-27", "a1", "Bahan makanan"),
     T("t5", "expense", 250000, "Dekorasi", "2026-09-26", "a1", "Dekorasi"),
     T("t6", "expense", 150000, "Perlengkapan", "2026-09-26", "a1", "Perlengkapan"),
-    T("t7", "income", payments.reduce((s, p) => s + p.amount, 0), "Iuran", "2026-09-28", "a2", "Iuran mingguan anggota"),
+    T("t7", "income", 0, "Iuran", "2026-09-28", "a2", "Iuran mingguan anggota"),
     T("t8", "income", 2500000, "Penjualan", "2026-09-20", "a3", "Penjualan kaos dan pin"),
     T("t9", "expense", 1300000, "Bahan", "2026-09-18", "a3", "Produksi merchandise"),
     T("t10", "income", 5000000, "Donasi", "2026-09-15", "a4", "Donasi paroki"),
     T("t11", "income", 2250000, "Donasi", "2026-09-14", "a4", "Donasi umat"),
     T("t12", "expense", 250000, "Konsumsi", "2026-09-10", "a5", "Konsumsi rapat panitia")
   ];
-  return { activities, transactions, members, payments };
+  return { activities, transactions };
 })();
 
 const TARGET_DANA = 250000000;
@@ -58,13 +37,30 @@ const TARGET_DANA = 250000000;
 const Api = {
   delay: (ms = 600) => new Promise(r => setTimeout(r, ms)),
 
-  /* MOCK: belum ada endpoint HTTP untuk membaca data. Ganti saat tersedia. */
-  async load() { await this.delay(); return structuredClone(DB); },
-  async getMembers() { await this.delay(200); return structuredClone(DB.members); },
-  async getMemberBalance(memberId) {
-    await this.delay(200);
-    const paid = DB.payments.filter(p => p.memberId === memberId).reduce((s, p) => s + p.amount, 0);
-    return { memberId, paidAmount: paid, paidWeeks: Math.floor(paid / 5000) };
+  /* Activity dan transaksi non-iuran masih MOCK. Data iuran dibaca dari Google Sheets. */
+  async load() {
+    await this.delay(300);
+    const data = structuredClone(DB);
+    try {
+      Object.assign(data, mapIuran(await this.getIuran()));
+    } catch (e) {
+      Object.assign(data, { members: [], payments: [], periods: [], fee: 0, iuranError: e.message });
+    }
+    data.transactions.find(t => t.id === "t7").amount = data.payments.reduce((s, p) => s + p.amount, 0);
+    return data;
+  },
+
+  /* REAL: GET ?action=iuran */
+  async getIuran() {
+    let json;
+    try {
+      const res = await fetch(API_URL + "?action=iuran");
+      json = await res.json();
+    } catch (e) {
+      throw new Error("Tidak dapat terhubung ke server (" + e.message + ")");
+    }
+    if (json.status !== "success") throw new Error(json.message || "Gagal memuat data iuran.");
+    return json.data;
   },
   async addTransaction(tx) { await this.delay(400); DB.transactions.unshift({ ...tx, id: "t" + Date.now() }); },
 
@@ -84,11 +80,16 @@ const Api = {
     try { data = await res.json(); } catch (e) { throw new Error("Respons server tidak dapat dibaca."); }
     if (data.status !== "success") throw new Error(data.message || "Pembayaran gagal dicatat.");
     return data;
-  },
-
-  /* MOCK: menyamakan tampilan lokal setelah record_payment sukses (sampai endpoint baca tersedia). */
-  async mockApplyPayment(memberId, isoDate, amount) {
-    DB.payments.push({ id: "P" + Date.now(), memberId, date: isoDate, amount });
-    DB.transactions.find(t => t.id === "t7").amount += amount;
   }
 };
+
+/* Ubah bentuk respons backend ke bentuk yang dipakai UI. Minggu bergabung = periode pertama yang berakhir pada/setelah join_date. */
+function mapIuran(d) {
+  const periods = d.periods.map(p => ({ id: p.period_id, start: p.start_date, end: p.end_date }));
+  const members = d.members.map(m => {
+    const i = m.join_date ? periods.findIndex(p => p.end >= m.join_date) : 0;
+    return { id: m.member_id, name: m.name, nickname: m.nickname, status: m.status, joinWeek: i < 0 ? periods.length + 1 : i + 1 };
+  });
+  const payments = d.payments.map(p => ({ id: p.payment_id, memberId: p.member_id, date: p.payment_date, amount: p.amount }));
+  return { fee: d.weekly_fee, periods, members, payments };
+}

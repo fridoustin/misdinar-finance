@@ -1,15 +1,21 @@
 /* Iuran: Rp5.000 per minggu, periode pertama Senin 28 September 2026 */
-const IURAN = { fee: 5000, weeks: 10 };
-const DAY = 864e5, START = Date.UTC(2026, 8, 28);
+const IURAN = { get fee() { return state.data.fee; } };
+const plist = () => state.data.periods;
+const utc = iso => new Date(iso + "T00:00:00Z");
 const iu = { week: null, filter: "all", q: "", memberId: null };
 
-const wkStart = k => new Date(START + (k - 1) * 7 * DAY);
-const wkEnd = k => new Date(START + ((k - 1) * 7 + 6) * DAY);
+const wkStart = k => utc(plist()[k - 1].start);
+const wkEnd = k => utc(plist()[k - 1].end);
 const dShort = d => d.toLocaleDateString("id-ID", { day: "numeric", month: "short", timeZone: "UTC" });
 const dLong = d => d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 const wkShort = k => dShort(wkStart(k)) + " - " + dShort(wkEnd(k));
 const wkRange = k => wkShort(k) + " " + wkEnd(k).getUTCFullYear();
-const currentWeek = () => Math.min(IURAN.weeks, Math.max(1, Math.floor((Date.now() - START) / (7 * DAY)) + 1));
+const currentWeek = () => {
+  const p = plist(), t = new Date().toISOString().slice(0, 10);
+  if (!p.length) return 1;
+  const i = p.findIndex(x => t >= x.start && t <= x.end);
+  return i >= 0 ? i + 1 : t < p[0].start ? 1 : p.length;
+};
 
 /* Alokasi ke periode paling awal yang belum lunas (preview UI, logika final ada di backend) */
 const memberPaid = m => state.data.payments.filter(p => p.memberId === m.id).reduce((s, p) => s + p.amount, 0);
@@ -24,6 +30,8 @@ const iuranStats = () => ({ ...periodStats(currentWeek()), collected: state.data
 const pill = ok => `<span class="pill ${ok ? "ok" : "no"}">${ok ? "Lunas" : "Belum bayar"}</span>`;
 
 function renderIuran() {
+  if (state.data.iuranError) return `<header class="top"><h3>Iuran Misdinar</h3></header><div class="state"><i data-lucide="wifi-off"></i><b>Data iuran belum bisa dimuat</b><p>${esc(state.data.iuranError)}</p><button class="btn small" data-act="retry">Muat ulang</button></div>`;
+  if (!plist().length) return `<header class="top"><h3>Iuran Misdinar</h3></header>${empty("Periode iuran belum dibuat", "Jalankan generatePaymentPeriods di Apps Script.")}`;
   if (iu.memberId) return renderMemberDetail();
   iu.week ??= currentWeek();
   const k = iu.week, cur = currentWeek(), s = iuranStats(), p = periodStats(k), q = iu.q.trim().toLowerCase();
@@ -31,13 +39,13 @@ function renderIuran() {
     && (iu.filter === "all" || (iu.filter === "paid") === isPaid(m, k))
     && (!q || m.name.toLowerCase().includes(q)));
   const chip = (v, l) => `<button class="chip ${iu.filter === v ? "on" : ""}" data-iu-f="${v}">${l}</button>`;
-  const weeks = Array.from({ length: IURAN.weeks }, (_, i) => i + 1).map(w =>
+  const weeks = Array.from({ length: plist().length }, (_, i) => i + 1).map(w =>
     `<button class="wk ${w === k ? "on" : ""}" data-iu-wk="${w}">${dShort(wkStart(w))}<small>Minggu ${w}</small></button>`).join("");
   const rows = list.map(m => {
     const ok = isPaid(m, k);
     return `<li><button class="mrow" data-iu-m="${m.id}">
       <span class="av">${esc(m.name[0])}</span>
-      <span class="mname"><b>${esc(m.name)}</b><small>${m.level}</small></span>
+      <span class="mname"><b>${esc(m.name)}</b><small>${esc(m.nickname)}</small></span>
       <span class="mstat">${pill(ok)}<small>${formatCurrency(ok ? IURAN.fee : 0)}</small></span></button></li>`;
   }).join("");
   return `
@@ -67,15 +75,15 @@ function renderIuran() {
 function renderMemberDetail() {
   const m = state.data.members.find(x => x.id === iu.memberId), w = weeksPaid(m);
   const pays = state.data.payments.filter(p => p.memberId === m.id).sort((a, b) => b.date.localeCompare(a.date));
-  const periods = Array.from({ length: w + 1 }, (_, i) => m.joinWeek + i).map((k, i) =>
+  const periods = Array.from({ length: w + 1 }, (_, i) => m.joinWeek + i).filter(k => k <= plist().length).map((k, i) =>
     `<li class="prow"><span>${wkShort(k)}</span>${pill(i < w).replace("Belum bayar", "Belum Lunas")}</li>`).join("");
   const hist = pays.map(p => `<li class="prow"><span><b>${dShort(new Date(p.date + "T00:00:00Z"))}</b><small class="muted"> ${Math.floor(p.amount / IURAN.fee)} minggu</small></span>
     <span><b>${formatCurrency(p.amount)}</b> ${pill(true)}</span></li>`).join("");
   return `
   <header class="top"><button class="icon-btn" data-iu-back aria-label="Kembali"><i data-lucide="chevron-left"></i></button>
-    <div><h3>${esc(m.name)}</h3><small>${m.level}</small></div></header>
+    <div><h3>${esc(m.name)}</h3><small>${esc(m.nickname)}</small></div></header>
   <section class="hero compact"><p>Status pembayaran</p>
-    <h1>${w ? "Lunas sampai " + dLong(wkEnd(m.joinWeek + w - 1)) : "Belum ada pembayaran"}</h1></section>
+    <h1>${w ? "Lunas sampai " + dLong(wkEnd(Math.min(m.joinWeek + w - 1, plist().length))) : "Belum ada pembayaran"}</h1></section>
   <button class="btn" data-iu-pay="${m.id}"><i data-lucide="plus"></i>Catat Pembayaran</button>
   <h4 class="day">Riwayat</h4>
   <ul class="list card">${hist || empty("Belum ada riwayat", "Catat pembayaran pertama anggota ini.")}</ul>
@@ -110,9 +118,10 @@ function updatePayInfo() {
   if (!a) { box.innerHTML = "Pilih atau isi nominal. Kelipatan " + formatCurrency(IURAN.fee) + " = 1 minggu."; return; }
   if (a % IURAN.fee) { box.innerHTML = `<span class="warn">Nominal harus kelipatan ${formatCurrency(IURAN.fee)}.</span>`; return; }
   const m = state.data.members.find(x => x.id === $id("payMember").value), start = m.joinWeek + weeksPaid(m);
-  const shown = Array.from({ length: Math.min(weeks, 6) }, (_, i) => `<li>✓ ${wkShort(start + i)}</li>`).join("");
+  const avail = Math.max(0, Math.min(weeks, plist().length - start + 1));
+  const shown = Array.from({ length: Math.min(avail, 6) }, (_, i) => `<li>✓ ${wkShort(start + i)}</li>`).join("");
   box.innerHTML = `${formatCurrency(a)} setara dengan <b>${weeks} minggu</b><p class="cap">Pembayaran akan dialokasikan ke:</p>
-    <ul>${shown}${weeks > 6 ? `<li class="muted">+ ${weeks - 6} minggu berikutnya</li>` : ""}</ul>
+    <ul>${shown}${avail > 6 ? `<li class="muted">+ ${avail - 6} minggu berikutnya</li>` : ""}${weeks > avail ? `<li class="warn">${weeks - avail} minggu melebihi periode iuran</li>` : ""}</ul>
     <p class="cap">Preview saja. Alokasi final dihitung backend.</p>`;
 }
 
@@ -131,7 +140,6 @@ $id("payForm").addEventListener("submit", async e => {
   try {
     const memberId = $id("payMember").value, date = $id("payDate").value;
     const res = await Api.recordPayment({ memberId, paymentDate: toDMY(date), amount });
-    await Api.mockApplyPayment(memberId, date, amount);
     state.data = await Api.load();
     closePayment(); render();
     showToast(res.message || "Pembayaran berhasil dicatat");

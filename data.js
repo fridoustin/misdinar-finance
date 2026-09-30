@@ -1,7 +1,7 @@
 /* Mock data + lapisan Api.
    Iuran: recordPayment memakai HTTP API asli (Google Apps Script). Lainnya masih mock. */
 
-const API_URL = "https://script.google.com/macros/s/AKfycbx5OkclwJGukN3D3ff9AtlAHEtCZqN9PN9qliqQeKsEOiX5OiXPBI8MyiL9vCAQf0-h/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycby4t5ded1878bEF8yM5Z6_hkaY3otkCWJuNuOH-fdyXsJdzyqelSr_VzQBLwQneMOrf/exec";
 // Frontend di GitHub Pages memanggil Apps Script lintas domain. Apps Script tidak
 // menjawab preflight CORS, jadi gunakan text/plain (body tetap JSON, backend tidak berubah).
 const API_CONTENT_TYPE = "text/plain;charset=utf-8";

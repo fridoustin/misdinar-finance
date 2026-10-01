@@ -1,68 +1,13 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#F7F1E7">
-<title>Temu Misdinar Finance</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-<div class="app">
-  <main id="view" aria-live="polite"></main>
-
-  <nav class="nav" aria-label="Navigasi utama">
-    <button data-page="home"><i data-lucide="house"></i><span>Home</span></button>
-    <button data-page="finance"><i data-lucide="wallet"></i><span>Finance</span></button>
-    <button class="fab" id="fab" aria-label="Tambah transaksi"><i data-lucide="plus"></i></button>
-    <button data-page="activity"><i data-lucide="calendar-days"></i><span>Activity</span></button>
-    <button data-page="iuran"><i data-lucide="users"></i><span>Iuran</span></button>
-  </nav>
-</div>
-
-<div class="overlay" id="overlay" hidden>
-  <form class="sheet" id="txForm" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" novalidate>
-    <div class="grab"></div>
-    <h2 id="sheetTitle">Tambah transaksi</h2>
-    <div class="seg" role="radiogroup" aria-label="Jenis transaksi">
-      <label><input type="radio" name="type" value="income" checked><span>Pemasukan</span></label>
-      <label><input type="radio" name="type" value="expense"><span>Pengeluaran</span></label>
-    </div>
-    <label class="field">Nominal
-      <div class="money"><b>Rp</b><input name="amount" id="amount" inputmode="numeric" placeholder="0" autocomplete="off"></div>
-    </label>
-    <label class="field">Kategori <select name="category" id="category"></select></label>
-    <div class="row2">
-      <label class="field">Tanggal <input type="date" name="date" id="date"></label>
-      <label class="field">Activity <select name="activityId" id="activitySel"></select></label>
-    </div>
-    <label class="field">Catatan <input name="note" placeholder="Contoh: Penjualan makanan"></label>
-    <p class="err" id="formErr" hidden></p>
-    <button class="btn" type="submit">Simpan transaksi</button>
-  </form>
-</div>
-<div class="overlay" id="payOverlay" hidden>
-  <form class="sheet" id="payForm" role="dialog" aria-modal="true" aria-labelledby="payTitle" novalidate>
-    <div class="grab"></div>
-    <h2 id="payTitle">Catat pembayaran</h2>
-    <label class="field">Nama Anggota <select id="payMember"></select></label>
-    <label class="field">Tanggal Pembayaran <input type="date" id="payDate"></label>
-    <div class="field">Nominal
-      <div class="quick" id="quick"></div>
-      <div class="money"><b>Rp</b><input id="payAmount" inputmode="numeric" placeholder="0" autocomplete="off"></div>
-    </div>
-    <div class="payinfo" id="payInfo"></div>
-    <p class="err" id="payErr" hidden></p>
-    <button class="btn" type="submit">Simpan pembayaran</button>
-  </form>
-</div>
-<div class="toast" id="toast" role="status"></div>
-
-<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
-<script src="data.js"></script>
-<script src="iuran.js"></script>
-<script src="script.js"></script>
-</body>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>misdinar-finance</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>

@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from "react";
-import { addTransactionAction } from "@/app/finance/action";
-import type { Category, TransactionType } from "@/domain/finance";
+import { categoriesFor, type Category, type TransactionType } from "@/domain/finance";
 import { todayIso } from "@/shared/format";
+import { DatePicker } from "@/components/ui/DatePicker";
+import { Select } from "@/components/ui/Select";
 import { Sheet } from "@/components/ui/Sheet";
+import { addTransactionAction } from "@/app/finance/action";
 
 interface Props {
   categories: Category[];
@@ -18,12 +20,19 @@ const TYPES: readonly (readonly [TransactionType, string])[] = [
 export function TransactionSheet({ categories, onClose, onDone }: Props) {
   const [type, setType] = useState<TransactionType>("income");
   const [digits, setDigits] = useState("");
-  const [categoryId, setCategoryId] = useState(categories[0]?.id ?? "");
+  const [categoryId, setCategoryId] = useState(categoriesFor("income", categories)[0]?.id ?? "");
   const [date, setDate] = useState(todayIso());
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
   const amount = Number(digits);
+  const options = categoriesFor(type, categories).map((c) => ({ value: c.id, label: c.name }));
+
+  function changeType(next: TransactionType) {
+    setType(next);
+    setCategoryId(categoriesFor(next, categories)[0]?.id ?? "");
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -48,7 +57,7 @@ export function TransactionSheet({ categories, onClose, onDone }: Props) {
               type="radio"
               name="type"
               checked={type === value}
-              onChange={() => setType(value)}
+              onChange={() => changeType(value)}
             />
             <span>{label}</span>
           </label>
@@ -68,26 +77,24 @@ export function TransactionSheet({ categories, onClose, onDone }: Props) {
         </div>
       </label>
 
-      <label className="field">
+      <div className="field">
         Kategori
-        <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      {categories.length === 0 && <p className="err">Buat kategori dulu di halaman Kategori.</p>}
+        <Select title="Pilih kategori" value={categoryId} options={options} onChange={setCategoryId} />
+      </div>
+      {options.length === 0 && <p className="err">Buat kategori dulu di halaman Kategori.</p>}
 
-      <label className="field">
+      <div className="field">
         Tanggal
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-      </label>
+        <DatePicker title="Pilih tanggal" value={date} onChange={setDate} />
+      </div>
 
       <label className="field">
         Catatan
-        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Contoh: Penjualan makanan" />
+        <input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Contoh: Penjualan makanan"
+        />
       </label>
 
       {error && <p className="err">{error}</p>}

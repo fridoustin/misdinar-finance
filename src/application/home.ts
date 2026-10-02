@@ -2,17 +2,17 @@ import { summarizeByCategory, type CategorySummary } from "@/application/finance
 import { TARGET_DANA, totalsOf, type FinanceData, type Totals } from "@/domain/finance";
 
 export interface HomeSummary {
-  totals: Totals;
-  iuranCollected: number;
+  kasBesar: Totals;
+  kasKecil: number;
   target: number;
   recent: CategorySummary[];
 }
 
-/** Iuran dihitung sebagai pemasukan tambahan di atas transaksi. */
-export function homeSummary(finance: FinanceData, iuranCollected: number, limit = 3): HomeSummary {
-  const base = totalsOf(finance.transactions);
-  const income = base.income + iuranCollected;
-
+/**
+ * Kas besar = semua transaksi (finance).
+ * Kas kecil = iuran, tabungan baju panitia. Keduanya tidak dicampur.
+ */
+export function homeSummary(finance: FinanceData, kasKecil: number, limit = 3): HomeSummary {
   const latestDate = new Map<string, string>();
   for (const t of finance.transactions) {
     if (t.date > (latestDate.get(t.categoryId) ?? "")) {
@@ -27,10 +27,5 @@ export function homeSummary(finance: FinanceData, iuranCollected: number, limit 
     )
     .slice(0, limit);
 
-  return {
-    totals: { income, expense: base.expense, net: income - base.expense },
-    iuranCollected,
-    target: TARGET_DANA,
-    recent,
-  };
+  return { kasBesar: totalsOf(finance.transactions), kasKecil, target: TARGET_DANA, recent };
 }

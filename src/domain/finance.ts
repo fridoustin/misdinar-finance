@@ -1,6 +1,28 @@
 export type TransactionType = "income" | "expense";
 export const TARGET_DANA = 250_000_000;
 
+export const INCOME_CATEGORIES = [
+  "Donasi",
+  "Sponsorship",
+  "Cari Dana",
+  "Penjualan",
+  "Lainnya",
+];
+
+export const EXPENSE_CATEGORIES = [
+  "Honorarium",
+  "Konsumsi",
+  "Perlengkapan",
+  "Transportasi",
+  "Dekorasi",
+  "Produksi",
+  "Pakaian/Kostum",
+  "Administrasi",
+  "Lainnya",
+];
+
+export const KAS_KECIL_CATEGORIES = ["Iuran"];
+
 export interface Category {
   id: string;
   name: string;
@@ -80,4 +102,15 @@ export const groupByDate = (list: Transaction[]): [string, Transaction[]][] => {
     groups.set(t.date, [...(groups.get(t.date) ?? []), t]);
   }
   return [...groups];
+};
+
+export const categoriesFor = (type: TransactionType, categories: Category[]): Category[] => {
+  const names = type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const known = new Set([...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES, ...KAS_KECIL_CATEGORIES]);
+
+  const ordered = names
+    .map((name) => categories.find((c) => c.name === name))
+    .filter((c): c is Category => c !== undefined);
+
+  return [...ordered, ...categories.filter((c) => !known.has(c.name))];
 };

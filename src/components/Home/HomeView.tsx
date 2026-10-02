@@ -2,11 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import type { HomeSummary } from "@/application/home";
-import { rupiah } from "@/shared/format";
 import { TotalsHero } from "@/components/finance/TotalsHero";
 import { CategoryCard } from "@/components/kategori/CategoryCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { KasKecilCard } from "./KasKecilCard";
 import { TargetCard } from "./TargetCard";
 
 export function HomeView({ summary }: { summary: HomeSummary }) {
@@ -15,9 +15,9 @@ export function HomeView({ summary }: { summary: HomeSummary }) {
   return (
     <>
       <PageHeader title="Temu Misdinar Finance" />
-      <TotalsHero label="Saldo Kas" totals={summary.totals} large />
-      <p className="cap">Pemasukan sudah termasuk iuran {rupiah(summary.iuranCollected)}.</p>
-      <TargetCard collected={summary.totals.income} target={summary.target} />
+      <TotalsHero label="Saldo Kas Besar" totals={summary.kasBesar} large />
+      <KasKecilCard amount={summary.kasKecil} onOpen={() => router.push("/iuran")} />
+      <TargetCard collected={summary.kasBesar.income} target={summary.target} />
 
       <div className="sec-head">
         <h2>Recent</h2>
@@ -26,7 +26,7 @@ export function HomeView({ summary }: { summary: HomeSummary }) {
         </button>
       </div>
       {summary.recent.length === 0 ? (
-        <EmptyState title="Belum ada kegiatan" text="Tambahkan transaksi di halaman Finance." />
+        <EmptyState title="Belum ada kegiatan" text="Tambahkan transaksi lewat tombol plus." />
       ) : (
         <div className="stack">
           {summary.recent.map((s) => (

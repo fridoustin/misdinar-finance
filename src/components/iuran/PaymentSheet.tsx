@@ -3,6 +3,8 @@ import { IuranData, isValidAmount, previewAllocation } from "@/domain/iuran";
 import { recordPaymentAction } from "@/app/iuran/actions";
 import { dayShort, rupiah } from "@/shared/format";
 import { Sheet } from "@/components/ui/Sheet";
+import { DatePicker } from "@/components/ui/DatePicker";
+import { Select } from "@/components/ui/Select";
 
 interface Props {
   data: IuranData;
@@ -44,25 +46,19 @@ export function PaymentSheet({ data, memberId, onClose, onDone }: Props) {
 
   return (
     <Sheet title="Catat pembayaran" onClose={onClose} onSubmit={submit}>
-      <label className="field">
+      <div className="field">
         Nama Anggota
-        <select value={id} onChange={(e) => setId(e.target.value)}>
-          {data.members.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="field">
-        Tanggal Pembayaran
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          required
+        <Select
+          title="Pilih anggota"
+          value={id}
+          onChange={setId}
+          options={data.members.map((m) => ({ value: m.id, label: m.name }))}
         />
-      </label>
+      </div>
+      <div className="field">
+        Tanggal Pembayaran
+        <DatePicker title="Tanggal pembayaran" value={date} onChange={setDate} />
+      </div>
       <div className="field">
         Nominal
         <div className="quick">

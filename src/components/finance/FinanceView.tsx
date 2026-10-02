@@ -12,6 +12,8 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { TotalsHero } from "./TotalsHero";
 import { TransactionList } from "./TransactionList";
+import { DatePicker } from "@/components/ui/DatePicker";
+import { Select } from "@/components/ui/Select";
 
 type TypeFilter = TransactionFilter["type"];
 
@@ -44,23 +46,21 @@ export function FinanceView({ data }: { data: FinanceData }) {
         onChange={(type) => update({ type })}
       />
       <div className="adv two">
-        <select
+        <Select
+          title="Kategori"
           value={filter.categoryId}
-          onChange={(e) => update({ categoryId: e.target.value })}
-          aria-label="Kategori"
-        >
-          <option value="">Semua kategori</option>
-          {data.categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <input
-          type="date"
+          onChange={(categoryId) => update({ categoryId })}
+          options={[
+            { value: "", label: "Semua kategori" },
+            ...data.categories.map((c) => ({ value: c.id, label: c.name })),
+          ]}
+        />
+        <DatePicker
+          title="Sejak tanggal"
           value={filter.from}
-          onChange={(e) => update({ from: e.target.value })}
-          aria-label="Sejak tanggal"
+          onChange={(from) => update({ from })}
+          placeholder="Sejak tanggal"
+          clearable
         />
       </div>
       <TransactionList transactions={visible} categories={data.categories} />

@@ -16,3 +16,12 @@ export const dayLong = (iso: string) =>
     year: "numeric",
     timeZone: "UTC",
   });
+
+export const rupiahSigned = (n: number) => (n < 0 ? "-" : "") + rupiah(n);
+
+/** Tanggal hari ini (zona waktu perangkat) dalam format YYYY-MM-DD. */
+export const todayIso = () => {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};

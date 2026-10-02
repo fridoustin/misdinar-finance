@@ -2,14 +2,16 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 import { Nav } from "@/components/layout/Nav";
+import { financeRepository } from "@/infrastructure/financeRepository";
 
 export const metadata: Metadata = { title: "Temu Misdinar Finance" };
-export const viewport: Viewport = {
-  themeColor: "#F7F1E7",
-  viewportFit: "cover",
-};
+export const viewport: Viewport = { themeColor: "#F7F1E7", viewportFit: "cover" };
+export const dynamic = "force-dynamic";
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  // Jika gagal, navigasi tetap tampil dengan daftar kategori kosong.
+  const categories = await financeRepository.getCategories().catch(() => []);
+
   return (
     <html lang="id">
       <head>
@@ -22,7 +24,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <div className="app">
           <main id="view">{children}</main>
-          <Nav />
+          <Nav categories={categories} />
         </div>
       </body>
     </html>

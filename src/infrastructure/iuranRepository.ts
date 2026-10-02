@@ -1,14 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
+import { db } from "./supabase";
 import type { IuranRepository } from "@/application/iuran";
 import { WEEKLY_FEE } from "@/domain/iuran";
-
-const db = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: { persistSession: false },
-  }
-);
 
 export const iuranRepository: IuranRepository = {
   async getIuran() {

@@ -1,3 +1,5 @@
+import { EmptyState } from "@/components/ui/EmptyState";
+
 export default function Soon() {
-  return <div className="state"><b>Segera hadir</b><p>Dibangun di tahap berikutnya.</p></div>;
+  return <EmptyState title="Segera hadir" text="Dibangun di tahap berikutnya." />;
 }

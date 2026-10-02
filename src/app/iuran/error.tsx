@@ -1,8 +1,10 @@
 "use client";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default function IuranError({ error, reset }: { error: Error; reset: () => void }) {
   return (
-    <div className="state"><b>Data iuran belum bisa dimuat</b><p>{error.message}</p>
-      <button className="btn small" onClick={reset}>Muat ulang</button></div>
+    <EmptyState title="Data iuran belum bisa dimuat" text={error.message}>
+      <button className="btn small" onClick={reset}>Muat ulang</button>
+    </EmptyState>
   );
 }

@@ -1,5 +1,5 @@
 import { iuranRepository } from "@/infrastructure/iuranRepository";
-import { IuranView } from "@/presentation/iuran/IuranView";
+import { IuranView } from "@/components/iuran/IuranView";
 
 export const dynamic = "force-dynamic";
 

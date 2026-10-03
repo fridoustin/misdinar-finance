@@ -1010,3 +1010,45 @@ input[type="search"],
 .cal-foot { display: flex; justify-content: space-between; }
 
 .kas-kecil { font-size: 22px; color: var(--deep); }
+
+/* Riwayat pembayaran dan bukti */
+.prow-main { display: grid; gap: 2px; min-width: 0; }
+.prow-amount { display: grid; justify-items: end; gap: 2px; }
+.proof {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mocha);
+  text-decoration: none;
+}
+.proof svg { width: 14px; height: 14px; }
+
+.file-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  font-weight: 500;
+  color: var(--text);
+}
+.file-row span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-row svg { width: 16px; height: 16px; color: var(--muted); }
+.file-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 48px;
+  border: 1px dashed var(--caramel);
+  border-radius: 12px;
+  color: var(--mocha);
+  font-weight: 600;
+  cursor: pointer;
+}
+.file-add svg { width: 18px; height: 18px; }

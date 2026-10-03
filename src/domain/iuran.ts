@@ -12,9 +12,16 @@ export interface Period {
   startDate: string;
   endDate: string;
 }
+export interface PaymentMethod {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
 export interface Payment {
   id: string;
+  number: string; // PPA-I001
   memberId: string;
+  methodId: string;
   paymentDate: string;
   amount: number;
 }
@@ -23,6 +30,7 @@ export interface IuranData {
   periods: Period[];
   members: Member[];
   payments: Payment[];
+  paymentMethods: PaymentMethod[];
 }
 
 /** Indeks (0-based) periode pertama anggota: periode pertama yang berakhir pada/setelah join_date. */
@@ -72,6 +80,21 @@ export interface NewPayment {
   memberId: string;
   paymentDate: string;
   amount: number;
+  methodId: string;
+}
+
+/** Bukti pembayaran yang akan diunggah. */
+export interface Evidence {
+  name: string;
+  type: string;
+  bytes: ArrayBuffer;
+}
+
+/** Bukti yang sudah tersimpan, dengan tautan sementara untuk dilihat. */
+export interface AttachmentLink {
+  paymentId: string;
+  name: string;
+  url: string;
 }
 
 /** Periode yang akan terisi oleh pembayaran baru (hanya preview, hasil final ada di database). */
@@ -85,3 +108,9 @@ export const previewAllocation = (
     weeksPaid(totalPaid(m.id, d.payments), d.weeklyFee);
   return d.periods.slice(start, start + weeksPaid(amount, d.weeklyFee));
 };
+
+export const MAX_EVIDENCE_FILES = 5;
+export const MAX_EVIDENCE_BYTES = 4 * 1024 * 1024;
+
+export const isEvidenceType = (type: string): boolean =>
+  type.startsWith("image/") || type === "application/pdf";

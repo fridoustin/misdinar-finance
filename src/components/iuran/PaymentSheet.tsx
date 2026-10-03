@@ -1,10 +1,18 @@
-import { useState, type FormEvent } from "react";
-import { IuranData, isValidAmount, previewAllocation } from "@/domain/iuran";
+import { useState, type ChangeEvent, type FormEvent } from "react";
+import { Paperclip, X } from "lucide-react";
 import { recordPaymentAction } from "@/app/iuran/actions";
-import { dayShort, rupiah } from "@/shared/format";
-import { Sheet } from "@/components/ui/Sheet";
+import {
+  IuranData,
+  MAX_EVIDENCE_BYTES,
+  MAX_EVIDENCE_FILES,
+  isValidAmount,
+  previewAllocation,
+} from "@/domain/iuran";
+import { compressImage } from "@/shared/compressImage";
+import { dayShort, fileSize, rupiah, todayIso } from "@/shared/format";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { Select } from "@/components/ui/Select";
+import { Sheet } from "@/components/ui/Sheet";
 
 interface Props {
   data: IuranData;
@@ -14,29 +22,50 @@ interface Props {
 }
 
 export function PaymentSheet({ data, memberId, onClose, onDone }: Props) {
+  const methods = data.paymentMethods.filter((m) => m.isActive);
+
   const [id, setId] = useState(memberId ?? data.members[0]?.id ?? "");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(todayIso());
+  const [methodId, setMethodId] = useState(methods[0]?.id ?? "");
   const [digits, setDigits] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const fee = data.weeklyFee,
-    amount = Number(digits),
-    weeks = amount / fee;
+
+  const fee = data.weeklyFee;
+  const amount = Number(digits);
+  const weeks = amount / fee;
   const member = data.members.find((m) => m.id === id);
   const valid = isValidAmount(amount, fee);
   const slots = member && valid ? previewAllocation(member, amount, data) : [];
 
+  async function addFiles(e: ChangeEvent<HTMLInputElement>) {
+    const picked = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    const ready = await Promise.all(picked.map((f) => compressImage(f)));
+    setFiles((current) => [...current, ...ready].slice(0, MAX_EVIDENCE_FILES));
+  }
+
   async function submit(e: FormEvent) {
     e.preventDefault();
-    setBusy(true);
     setError("");
+
+    if (files.reduce((sum, f) => sum + f.size, 0) > MAX_EVIDENCE_BYTES) {
+      setError("Total ukuran bukti maksimal 4 MB.");
+      return;
+    }
+
+    setBusy(true);
     try {
-      const res = await recordPaymentAction({
-        memberId: id,
-        paymentDate: date,
-        amount,
-      });
-      if (res.error) throw new Error(res.error);
+      const form = new FormData();
+      form.set("memberId", id);
+      form.set("paymentDate", date);
+      form.set("amount", String(amount));
+      form.set("methodId", methodId);
+      files.forEach((f) => form.append("files", f));
+
+      const result = await recordPaymentAction(form);
+      if (result.error) throw new Error(result.error);
       onDone();
     } catch (x) {
       setError((x as Error).message);
@@ -55,10 +84,25 @@ export function PaymentSheet({ data, memberId, onClose, onDone }: Props) {
           options={data.members.map((m) => ({ value: m.id, label: m.name }))}
         />
       </div>
+
       <div className="field">
         Tanggal Pembayaran
         <DatePicker title="Tanggal pembayaran" value={date} onChange={setDate} />
       </div>
+
+      <div className="field">
+        Metode Pembayaran
+        <Select
+          title="Pilih metode pembayaran"
+          value={methodId}
+          onChange={setMethodId}
+          options={methods.map((m) => ({ value: m.id, label: m.name }))}
+        />
+      </div>
+      {methods.length === 0 && (
+        <p className="err">Belum ada metode pembayaran aktif di tabel payment_methods.</p>
+      )}
+
       <div className="field">
         Nominal
         <div className="quick">
@@ -83,13 +127,12 @@ export function PaymentSheet({ data, memberId, onClose, onDone }: Props) {
           />
         </div>
       </div>
+
       <div className="payinfo">
         {!amount ? (
           `Kelipatan ${rupiah(fee)} = 1 minggu.`
         ) : !valid ? (
-          <span className="warn">
-            Nominal harus kelipatan {rupiah(fee)}.
-          </span>
+          <span className="warn">Nominal harus kelipatan {rupiah(fee)}.</span>
         ) : (
           <>
             {rupiah(amount)} setara dengan <b>{weeks} minggu</b>
@@ -100,22 +143,42 @@ export function PaymentSheet({ data, memberId, onClose, onDone }: Props) {
                   ✓ {dayShort(p.startDate)} - {dayShort(p.endDate)}
                 </li>
               ))}
-              {slots.length > 6 && (
-                <li className="muted">
-                  + {slots.length - 6} minggu berikutnya
-                </li>
-              )}
+              {slots.length > 6 && <li className="muted">+ {slots.length - 6} minggu berikutnya</li>}
               {weeks > slots.length && (
-                <li className="warn">
-                  {weeks - slots.length} minggu melebihi periode iuran
-                </li>
+                <li className="warn">{weeks - slots.length} minggu melebihi periode iuran</li>
               )}
             </ul>
           </>
         )}
       </div>
+
+      <div className="field">
+        Bukti pembayaran (opsional)
+        {files.map((f, i) => (
+          <div key={`${f.name}-${i}`} className="file-row">
+            <Paperclip />
+            <span>{f.name}</span>
+            <small className="muted">{fileSize(f.size)}</small>
+            <button
+              type="button"
+              aria-label="Hapus file"
+              onClick={() => setFiles(files.filter((_, j) => j !== i))}
+            >
+              <X />
+            </button>
+          </div>
+        ))}
+        {files.length < MAX_EVIDENCE_FILES && (
+          <label className="file-add">
+            <Paperclip />
+            Tambah foto atau PDF
+            <input type="file" accept="image/*,application/pdf" multiple hidden onChange={addFiles} />
+          </label>
+        )}
+      </div>
+
       {error && <p className="err">{error}</p>}
-      <button className="btn" disabled={busy || !valid}>
+      <button className="btn" disabled={busy || !valid || !methodId || !id}>
         {busy ? "Menyimpan..." : "Simpan pembayaran"}
       </button>
     </Sheet>
